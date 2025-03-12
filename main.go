@@ -77,7 +77,7 @@ func main() {
         }
 }
 
-func doStorageCheck(clientset *kubernetes.Clientset, storageClass string) {
+func doStorageCheck(clientset kubernetes.Interface, storageClass string) {
         start := time.Now()
         ctx := context.Background()
 
