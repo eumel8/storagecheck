@@ -1,0 +1,22 @@
+name: Container
+
+on:
+  push:
+#    tags:
+#    - "*"
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+      - name: Login Build Push
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          export DOCKER_BUILDKIT=1
+          docker build -f Dockerfile -t ghcr.io/${{ github.repository_owner }}/${IMAGE}/${IMAGE}:${VERSION} .
+          docker push ghcr.io/${{ github.repository_owner }}/${IMAGE}/${IMAGE}:${VERSION}
+        env:
+          IMAGE: storagecheck

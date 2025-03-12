@@ -37,10 +37,22 @@ var (
                         Buckets: prometheus.DefBuckets,
                 },
         )
+        cleanupSuccess = prometheus.NewCounter(
+                prometheus.CounterOpts{
+                        Name: "storage_check_cleanup_success_total",
+                        Help: "Total number of successful cleanups of previous checks",
+                },
+        )
+        cleanupFailure = prometheus.NewCounter(
+                prometheus.CounterOpts{
+                        Name: "storage_check_cleanup_failure_total",
+                        Help: "Total number of failed cleanups of previous checks",
+                },
+        )
 )
 
 func init() {
-        prometheus.MustRegister(checkSuccess, checkFailure, checkDuration)
+        prometheus.MustRegister(checkSuccess, checkFailure, checkDuration, cleanupSuccess, cleanupFailure)
 }
 
 func main() {
@@ -72,8 +84,47 @@ func main() {
 
         ticker := time.NewTicker(time.Duration(interval) * time.Second)
         for {
+                // Clean up any existing resources from previous checks before proceeding
+                cleanupPreviousChecks(clientset)
                 doStorageCheck(clientset, storageClass)
                 <-ticker.C
+        }
+}
+
+func cleanupPreviousChecks(clientset kubernetes.Interface) {
+        ctx := context.Background()
+        namespace := "default"
+        
+        // Find and delete pods from previous checks
+        podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+                LabelSelector: "app=storage-check",
+        })
+        
+        if err == nil && len(podList.Items) > 0 {
+                for _, pod := range podList.Items {
+                        err := clientset.CoreV1().Pods(namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{})
+                        if err != nil {
+                                cleanupFailure.Inc()
+                        } else {
+                                cleanupSuccess.Inc()
+                        }
+                }
+        }
+        
+        // Find and delete PVCs from previous checks
+        pvcList, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(ctx, metav1.ListOptions{
+                LabelSelector: "app=storage-check",
+        })
+        
+        if err == nil && len(pvcList.Items) > 0 {
+                for _, pvc := range pvcList.Items {
+                        err := clientset.CoreV1().PersistentVolumeClaims(namespace).Delete(ctx, pvc.Name, metav1.DeleteOptions{})
+                        if err != nil {
+                                cleanupFailure.Inc()
+                        } else {
+                                cleanupSuccess.Inc()
+                        }
+                }
         }
 }
 
@@ -84,6 +135,9 @@ func doStorageCheck(clientset kubernetes.Interface, storageClass string) {
         pvc := &corev1.PersistentVolumeClaim{
                 ObjectMeta: metav1.ObjectMeta{
                         GenerateName: "storage-check-pvc-",
+                        Labels: map[string]string{
+                                "app": "storage-check",
+                        },
                 },
                 Spec: corev1.PersistentVolumeClaimSpec{
                         AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
@@ -106,6 +160,9 @@ func doStorageCheck(clientset kubernetes.Interface, storageClass string) {
         pod := &corev1.Pod{
                 ObjectMeta: metav1.ObjectMeta{
                         GenerateName: "storage-check-pod-",
+                        Labels: map[string]string{
+                                "app": "storage-check",
+                        },
                 },
                 Spec: corev1.PodSpec{
                         RestartPolicy: corev1.RestartPolicyNever,

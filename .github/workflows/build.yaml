@@ -1,0 +1,31 @@
+# https://github.com/marketplace/actions/go-release-binaries
+name: Release CI
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  release-builds:
+    name: release linux/amd64
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux,windows,darwin]
+        goarch: [amd64, arm64]
+        exclude:
+          - goarch: arm64
+            goos: windows
+    steps:
+    - uses: actions/checkout@v2
+    - uses: wangyoucao577/go-release-action@v1.53
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goversion: "https://dl.google.com/go/go1.23.4.linux-amd64.tar.gz"
+        goos: ${{ matrix.goos }}
+        goarch: ${{ matrix.goarch }}
+        binary_name: storagecheck
+        retry: 10
+        sha256sum: true
+        overwrite: true
+        pre_command: go mod tidy
