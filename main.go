@@ -103,7 +103,7 @@ func main() {
 	// Prometheus endpoint
 	go func() {
 		log.Info("Starting Prometheus endpoint on port " + port)
-		http.Handle("/metrics", promhttp.Handler())
+		http.Handle("/metrics", LoggingMiddleware(promhttp.Handler()))
 		http.ListenAndServe(":"+port, nil)
 	}()
 
@@ -126,6 +126,16 @@ func main() {
 		doStorageCheck(clientset, storageClass, namespace, image)
 		<-ticker.C
 	}
+}
+
+func LoggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		startTime := time.Now()
+		log.Infof("Received %s request for %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
+		next.ServeHTTP(w, r)
+		duration := time.Since(startTime)
+		log.Infof("Handled request for %s in %v", r.URL.Path, duration)
+	})
 }
 
 func cleanupPreviousChecks(clientset kubernetes.Interface, namespace string) {
