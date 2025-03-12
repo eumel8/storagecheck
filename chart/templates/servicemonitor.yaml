@@ -1,3 +1,4 @@
+{{ if .Values.servicemonitor.enabled }}
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -13,3 +14,4 @@ spec:
   selector:
     matchLabels:
     {{- include "storagecheck.labels" . | nindent 6 }}
+{{ end }}
