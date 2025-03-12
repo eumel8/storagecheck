@@ -1,0 +1,15 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "storagecheck.fullname" . }}
+  labels:
+    {{- include "storagecheck.labels" . | nindent 4 }}
+spec:
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /metrics
+  selector:
+    matchLabels:
+    {{- include "storagecheck.labels" . | nindent 6 }}

@@ -37,6 +37,7 @@ securityContext:
 # service for Monitoring
 service:
   type: ClusterIP
+  port: 8080
   targetPort: 8080
 
 # resources for Container
@@ -58,8 +59,8 @@ affinity: {}
 logLevel: info
 
 # storagecheck parameter
-storageclass: "local-path"
-checkinterval: "180"
+storageclass: "loocal-path"
+checkinterval: "60"
 
 # create a servicemonitor for Prometheus
 servicemonitor:
