@@ -59,6 +59,10 @@ func main() {
 	storageClass := os.Getenv("STORAGE_CLASS")
 	intervalStr := os.Getenv("CHECK_INTERVAL")
 	namespace := os.Getenv("NAMESPACE")
+	image := os.Getenv("CHECK_IMAGE")
+	if image == "" {
+		image = "mtr.devops.telekom.de/mcsps/busybox:main"
+	}
 	if storageClass == "" {
 		storageClass = "local-path"
 	}
@@ -87,7 +91,7 @@ func main() {
 	for {
 		// Clean up any existing resources from previous checks before proceeding
 		cleanupPreviousChecks(clientset, namespace)
-		doStorageCheck(clientset, storageClass, namespace)
+		doStorageCheck(clientset, storageClass, namespace, image)
 		<-ticker.C
 	}
 }
@@ -129,7 +133,13 @@ func cleanupPreviousChecks(clientset kubernetes.Interface, namespace string) {
 	}
 }
 
-func doStorageCheck(clientset kubernetes.Interface, storageClass string, namespace string) {
+func doStorageCheck(clientset kubernetes.Interface, storageClass string, namespace string, image string) {
+
+	var user = int64(1000)
+	var privledged = bool(true)
+	var readonly = bool(true)
+	var nonroot = bool(false)
+
 	start := time.Now()
 	ctx := context.Background()
 
@@ -170,8 +180,22 @@ func doStorageCheck(clientset kubernetes.Interface, storageClass string, namespa
 			Containers: []corev1.Container{
 				{
 					Name:    "checker",
-					Image:   "busybox",
+					Image:   image,
 					Command: []string{"sh", "-c", "echo hello > /mnt/testfile && cat /mnt/testfile"},
+
+					SecurityContext: &corev1.SecurityContext{
+						AllowPrivilegeEscalation: &privledged,
+						Capabilities: &corev1.Capabilities{
+							Drop: []corev1.Capability{"ALL",
+								"CAP_NET_RAW"},
+						},
+						Privileged:             &privledged,
+						ReadOnlyRootFilesystem: &readonly,
+						RunAsGroup:             &user,
+						RunAsUser:              &user,
+						RunAsNonRoot:           &nonroot,
+					},
+
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							MountPath: "/mnt",
@@ -180,6 +204,17 @@ func doStorageCheck(clientset kubernetes.Interface, storageClass string, namespa
 					},
 				},
 			},
+			SecurityContext: &corev1.PodSecurityContext{
+				FSGroup:            &user,
+				RunAsGroup:         &user,
+				RunAsUser:          &user,
+				RunAsNonRoot:       &nonroot,
+				SupplementalGroups: []int64{1000},
+				SeccompProfile: &corev1.SeccompProfile{
+					Type: corev1.SeccompProfileTypeRuntimeDefault,
+				},
+			},
+
 			Volumes: []corev1.Volume{
 				{
 					Name: "testvol",
