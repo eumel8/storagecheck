@@ -1,0 +1,66 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/eumel8/storagecheck/storagecheck
+  pullPolicy: Always
+  tag: dev
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+# minimal permissions for pod
+podSecurityContext:
+  fsGroup: 1000
+  supplementalGroups:
+  - 1000
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# minimal permissions for container
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+    - CAP_NET_RAW
+  privileged: false
+  runAsUser: 1000
+  runAsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+# service for Monitoring
+service:
+  type: ClusterIP
+  targetPort: 8080
+
+# resources for Container
+resources:
+  limits:
+    memory: 250Mi
+    cpu: 500m
+  requests:
+    memory: 64Mi
+    cpu: 300m
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# loglevel of application (info,error,debug)
+logLevel: info
+
+# storagecheck parameter
+storageclass: "local-path"
+checkinterval: "180"
+
+# create a servicemonitor for Prometheus
+servicemonitor:
+  enabled: false

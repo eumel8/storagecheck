@@ -1,0 +1,36 @@
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ include "storagecheck.fullname" . }}
+  labels:
+    {{- include "storagecheck.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - events
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "storagecheck.fullname" . }}
+  labels:
+    {{- include "storagecheck.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "storagecheck.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "storagecheck.fullname" . }}
