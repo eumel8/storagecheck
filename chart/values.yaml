@@ -65,3 +65,7 @@ checkinterval: "1800"
 # create a servicemonitor for Prometheus
 servicemonitor:
   enabled: false
+
+# create a Kyverno policy exception for the check pod
+policyexception:
+  enabled: false

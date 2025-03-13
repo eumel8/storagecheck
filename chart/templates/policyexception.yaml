@@ -1,0 +1,23 @@
+{{ if .Values.policyexception.enabled }}
+apiVersion: kyverno.io/v2
+kind: PolicyException
+metadata:
+  name: {{ include "storagecheck.fullname" . }}
+  labels:
+    {{- include "storagecheck.labels" . | nindent 4 }}
+spec:
+  exceptions:
+  - policyName: prevent-bare-pods
+    ruleNames:
+    - bare-pods
+  match:
+    any:
+    - resources:
+        kinds:
+        - Pod
+        namespaces:
+         - "{{ .Release.Namespace }}"
+        names:
+        - storage-check-pod
+        - storage-check-pod*
+{{ end }}
