@@ -1,4 +1,4 @@
-module main.go
+module github.com/eumel8/storagecheck
 
 go 1.23.4
 
