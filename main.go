@@ -14,6 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -104,6 +105,10 @@ func main() {
 	go func() {
 		log.Info("Starting Prometheus endpoint on port " + port)
 		http.Handle("/metrics", LoggingMiddleware(promhttp.Handler()))
+		http.Handle("/healthz", LoggingMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("I'm OK. And you?"))
+		})))
 		http.ListenAndServe(":"+port, nil)
 	}()
 
@@ -232,6 +237,19 @@ func doStorageCheck(clientset kubernetes.Interface, storageClass string, namespa
 					Image:   image,
 					Command: []string{"sh", "-c", "echo hello > /mnt/testfile && cat /mnt/testfile"},
 
+					LivenessProbe: &corev1.Probe{
+						InitialDelaySeconds: 5,
+						PeriodSeconds:       5,
+						TimeoutSeconds:      1,
+						SuccessThreshold:    1,
+						FailureThreshold:    3,
+						ProbeHandler: corev1.ProbeHandler{
+							HTTPGet: &corev1.HTTPGetAction{
+								Path: "/healthz",
+								Port: intstr.FromInt(8080),
+							},
+						},
+					},
 					SecurityContext: &corev1.SecurityContext{
 						AllowPrivilegeEscalation: &priviledged,
 						Capabilities: &corev1.Capabilities{
