@@ -109,7 +109,7 @@ func main() {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("I'm OK. And you?"))
 		})))
-		http.ListenAndServe(":"+port, nil)
+		http.ListenAndServe("[::]:"+port, nil)
 	}()
 
 	// Kubernetes client
