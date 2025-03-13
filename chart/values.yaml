@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/eumel8/storagecheck/storagecheck
   pullPolicy: Always
-  tag: dev
+  #tag: dev
 
 imagePullSecrets: []
 nameOverride: ""
@@ -59,8 +59,8 @@ affinity: {}
 logLevel: info
 
 # storagecheck parameter
-storageclass: "loocal-path"
-checkinterval: "60"
+storageclass: "local-path"
+checkinterval: "1800"
 
 # create a servicemonitor for Prometheus
 servicemonitor:
