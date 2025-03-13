@@ -184,9 +184,9 @@ func doStorageCheck(clientset kubernetes.Interface, storageClass string, namespa
 
 	log.Debug("Starting storage check")
 	var user = int64(1000)
-	var privledged = bool(true)
+	var priviledged = bool(false)
 	var readonly = bool(true)
-	var nonroot = bool(false)
+	var noneroot = bool(true)
 
 	start := time.Now()
 	ctx := context.Background()
@@ -233,16 +233,16 @@ func doStorageCheck(clientset kubernetes.Interface, storageClass string, namespa
 					Command: []string{"sh", "-c", "echo hello > /mnt/testfile && cat /mnt/testfile"},
 
 					SecurityContext: &corev1.SecurityContext{
-						AllowPrivilegeEscalation: &privledged,
+						AllowPrivilegeEscalation: &priviledged,
 						Capabilities: &corev1.Capabilities{
 							Drop: []corev1.Capability{"ALL",
 								"CAP_NET_RAW"},
 						},
-						Privileged:             &privledged,
+						Privileged:             &priviledged,
 						ReadOnlyRootFilesystem: &readonly,
 						RunAsGroup:             &user,
 						RunAsUser:              &user,
-						RunAsNonRoot:           &nonroot,
+						RunAsNonRoot:           &noneroot,
 					},
 
 					VolumeMounts: []corev1.VolumeMount{
@@ -257,7 +257,7 @@ func doStorageCheck(clientset kubernetes.Interface, storageClass string, namespa
 				FSGroup:            &user,
 				RunAsGroup:         &user,
 				RunAsUser:          &user,
-				RunAsNonRoot:       &nonroot,
+				RunAsNonRoot:       &noneroot,
 				SupplementalGroups: []int64{1000},
 				SeccompProfile: &corev1.SeccompProfile{
 					Type: corev1.SeccompProfileTypeRuntimeDefault,
