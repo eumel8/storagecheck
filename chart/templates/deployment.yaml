@@ -30,7 +30,7 @@ spec:
             value: "{{ .Values.checkinterval }}"
           - name: NAMESPACE
             value: "{{ .Release.Namespace }}"
-          livesnessProbe:
+          livenessProbe:
             httpGet: 
               path: /healthz
               port: http
