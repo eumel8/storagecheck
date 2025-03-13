@@ -12,6 +12,6 @@ spec:
       protocol: TCP
   podSelector:
     matchLabels:
-    {{- include "storagecheck.labels" . | nindent 6 }}
+    {{- include "storagecheck.selectorLabels" . | nindent 6 }}
   policyTypes:
   - Ingress
