@@ -250,6 +250,16 @@ func doStorageCheck(clientset kubernetes.Interface, storageClass string, namespa
 							},
 						},
 					},
+					Resources: corev1.ResourceRequirements{
+						Limits: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("200m"),
+							corev1.ResourceMemory: resource.MustParse("200Mi"),
+						},
+						Requests: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("10m"),
+							corev1.ResourceMemory: resource.MustParse("48Mi"),
+						},
+					},
 					SecurityContext: &corev1.SecurityContext{
 						AllowPrivilegeEscalation: &priviledged,
 						Capabilities: &corev1.Capabilities{
