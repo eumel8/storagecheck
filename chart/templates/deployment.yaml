@@ -24,8 +24,6 @@ spec:
       containers:
         - name: {{ .Chart.Name }}
           env:
-          - name: STORAGE_CLASS
-            value: "{{ .Values.storageclass }}"
           - name: CHECK_INTERVAL
             value: "{{ .Values.checkinterval }}"
           - name: NAMESPACE

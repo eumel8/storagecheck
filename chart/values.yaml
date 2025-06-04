@@ -59,7 +59,6 @@ affinity: {}
 logLevel: info
 
 # storagecheck parameter
-storageclass: "local-path"
 checkinterval: "1800"
 
 # create a servicemonitor for Prometheus

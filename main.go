@@ -128,7 +128,7 @@ func main() {
 	for {
 		// Clean up any existing resources from previous checks before proceeding
 		cleanupPreviousChecks(clientset, namespace)
-		doStorageCheck(clientset, storageClass, namespace, image)
+		doStorageCheck(clientset, namespace, image)
 		<-ticker.C
 	}
 }
@@ -185,9 +185,33 @@ func cleanupPreviousChecks(clientset kubernetes.Interface, namespace string) {
 	}
 }
 
-func doStorageCheck(clientset kubernetes.Interface, storageClass string, namespace string, image string) {
+// lookup possible storage classes beside replaimPolicy Retain
+func lookupStorageClass(clientset kubernetes.Interface) (string, error) {
+	storageClasses, err := clientset.StorageV1().StorageClasses().List(context.Background(), metav1.ListOptions{
+		LabelSelector: "reclaimPolicy!=Retain",
+	})
+	if err != nil {
+		log.Error("Failed to list storage classes: %v", err)
+		return "", err
+	}
+	if len(storageClasses.Items) > 0 {
+		// Use the first storage class that is not Retain
+		for _, sc := range storageClasses.Items {
+			if sc.ReclaimPolicy != nil && *sc.ReclaimPolicy != corev1.PersistentVolumeReclaimRetain {
+				storageClass := sc.Name
+				log.Debug("Using storage class: %s", storageClass)
+				return storageClass, nil
+			}
+		}
+	} else {
+		log.Warn("No storage classes found")
+	}
+	return "", nil
+}
 
-	log.Debug("Starting storage check")
+func doStorageCheck(clientset kubernetes.Interface, namespace string, image string) {
+
+	log.Infof("Perform a storage check")
 	var user = int64(1000)
 	var priviledged = bool(false)
 	var readonly = bool(true)
@@ -195,6 +219,20 @@ func doStorageCheck(clientset kubernetes.Interface, storageClass string, namespa
 
 	start := time.Now()
 	ctx := context.Background()
+
+	// lookup a storage class until we find one that is not Retain
+	storageClass, err := lookupStorageClass(clientset)
+	if err != nil {
+		log.Error("Failed to lookup storage class: %v", err)
+		checkFailure.Inc()
+		return
+	}
+
+	if storageClass == "" {
+		log.Error("No suitable storage class found")
+		checkFailure.Inc()
+		return
+	}
 
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{

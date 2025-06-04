@@ -34,3 +34,32 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: {{ include "storagecheck.fullname" . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    {{- include "storagecheck.labels" . | nindent 4 }}
+  name: {{ include "storagecheck.fullname" . }}-{{ .Release.Namespace }}
+rules:
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  verbs:
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    {{- include "storagecheck.labels" . | nindent 4 }}
+  name: {{ include "storagecheck.fullname" . }}-{{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "storagecheck.fullname" . }}-{{ .Release.Namespace }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "storagecheck.fullname" . }}
+  namespace: "{{ .Release.Namespace }}"
