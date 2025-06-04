@@ -3,7 +3,6 @@ replicaCount: 1
 image:
   repository: ghcr.io/eumel8/storagecheck/storagecheck
   pullPolicy: Always
-  tag: lookup-sc
   #tag: dev
 
 imagePullSecrets: []
