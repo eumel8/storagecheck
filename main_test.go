@@ -87,7 +87,6 @@ func TestCleanupPreviousChecks(t *testing.T) {
 // TestDoStorageCheckSuccess fakes the pod status so that the storage check loop sees a Succeeded pod.
 func TestDoStorageCheckSuccess(t *testing.T) {
 	namespace := "test-namespace"
-	storageClass := "local-path"
 	image := "busybox"
 	clientset := fake.NewSimpleClientset()
 
@@ -119,7 +118,7 @@ func TestDoStorageCheckSuccess(t *testing.T) {
 	// Run doStorageCheck in a goroutine so that the test does not block indefinitely.
 	done := make(chan struct{})
 	go func() {
-		doStorageCheck(clientset, storageClass, namespace, image)
+		doStorageCheck(clientset, namespace, image)
 		close(done)
 	}()
 
