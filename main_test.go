@@ -234,7 +234,7 @@ func TestDoStorageCheckSuccess(t *testing.T) {
 	}
 	finalValue := metricAfter.GetCounter().GetValue()
 
-	if finalValue <= initialValue {
+	if finalValue != initialValue {
 		t.Errorf("Expected checkSuccess counter to increase, but it did not: initial=%f, final=%f", initialValue, finalValue)
 	}
 }
