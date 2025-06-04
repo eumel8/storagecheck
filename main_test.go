@@ -9,6 +9,7 @@ import (
 
 	dto "github.com/prometheus/client_model/go"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
@@ -81,6 +82,103 @@ func TestCleanupPreviousChecks(t *testing.T) {
 	}
 	if len(pvcs.Items) != 0 {
 		t.Errorf("Expected 0 PVCs after cleanup, got %d", len(pvcs.Items))
+	}
+}
+
+func TestLookupStorageClass(t *testing.T) {
+	tests := []struct {
+		name           string
+		storageClasses []storagev1.StorageClass
+		expectedName   string
+		expectError    bool
+	}{
+		{
+			name: "Single non-Retain class",
+			storageClasses: []storagev1.StorageClass{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "fast-storage",
+					},
+					ReclaimPolicy: func() *corev1.PersistentVolumeReclaimPolicy {
+						r := corev1.PersistentVolumeReclaimDelete
+						return &r
+					}(),
+				},
+			},
+			expectedName: "fast-storage",
+			expectError:  false,
+		},
+		{
+			name: "Multiple classes, skip Retain",
+			storageClasses: []storagev1.StorageClass{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "retain-storage",
+					},
+					ReclaimPolicy: func() *corev1.PersistentVolumeReclaimPolicy {
+						r := corev1.PersistentVolumeReclaimRetain
+						return &r
+					}(),
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "delete-storage",
+					},
+					ReclaimPolicy: func() *corev1.PersistentVolumeReclaimPolicy {
+						r := corev1.PersistentVolumeReclaimDelete
+						return &r
+					}(),
+				},
+			},
+			expectedName: "delete-storage",
+			expectError:  false,
+		},
+		{
+			name:           "No storage classes",
+			storageClasses: []storagev1.StorageClass{},
+			expectedName:   "",
+			expectError:    false,
+		},
+		{
+			name: "All Retain storage classes",
+			storageClasses: []storagev1.StorageClass{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "retain-storage",
+					},
+					ReclaimPolicy: func() *corev1.PersistentVolumeReclaimPolicy {
+						r := corev1.PersistentVolumeReclaimRetain
+						return &r
+					}(),
+				},
+			},
+			expectedName: "",
+			expectError:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := fake.NewSimpleClientset()
+
+			for _, sc := range tt.storageClasses {
+				_, err := client.StorageV1().StorageClasses().Create(context.TODO(), &sc, metav1.CreateOptions{})
+				if err != nil {
+					t.Fatalf("Failed to seed storage class: %v", err)
+				}
+			}
+
+			name, err := lookupStorageClass(client)
+			if tt.expectError && err == nil {
+				t.Errorf("Expected error but got none")
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if name != tt.expectedName {
+				t.Errorf("Expected name %q, got %q", tt.expectedName, name)
+			}
+		})
 	}
 }
 
