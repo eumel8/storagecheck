@@ -28,6 +28,9 @@ spec:
             value: "{{ .Values.checkinterval }}"
           - name: NAMESPACE
             value: "{{ .Release.Namespace }}"
+          {{- if .Values.env }}
+          {{- toYaml .Values.env | nindent 10 }}
+          {{- end }}
           livenessProbe:
             httpGet: 
               path: /healthz
