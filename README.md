@@ -1,5 +1,5 @@
 # storagecheck
-![Coverage](https://img.shields.io/badge/Coverage-29.5%25-red)
+![Coverage](https://img.shields.io/badge/Coverage-53.3%25-yellow)
 
 checks in Kubernetes cluster the possibilty to create a PVC and bound on a POD, periodically.
 
