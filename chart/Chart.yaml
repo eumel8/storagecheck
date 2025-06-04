@@ -2,7 +2,7 @@ apiVersion: v2
 name: storagecheck
 description: A Helm chart for check storage in Kubernetes Cluster
 type: application
-version: 1.0.3
+version: 1.0.4
 appVersion: "1.0.2"
 maintainers:
   - name: eumel8
