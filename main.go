@@ -211,7 +211,7 @@ func lookupStorageClass(clientset kubernetes.Interface) (string, error) {
 
 func doStorageCheck(clientset kubernetes.Interface, namespace string, image string) {
 
-	log.Debug("Starting storage check")
+	log.Infof("Perform a storage check")
 	var user = int64(1000)
 	var priviledged = bool(false)
 	var readonly = bool(true)
