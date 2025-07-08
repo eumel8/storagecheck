@@ -9,6 +9,12 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+# additional env,e.g. CHECK_IMAGE
+#
+# env:
+#   - name: CHECK_IMAGE
+#     value: ghcr.io/mcsps/busybox:1.0.8
+
 podAnnotations: {}
 
 # minimal permissions for pod
