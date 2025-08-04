@@ -5,9 +5,22 @@ checks in Kubernetes cluster the possibilty to create a PVC and bound on a POD, 
 
 serve Prometheus metrics for the status
 
+<img src="storagecheck-1.png" alt="storagecheck-1" width="680"/>
+<img src="storagecheck-2.png" alt="storagecheck-2" width="680"/>
+
 ## installation
 
 via Helm
+
+## alert
+
+Runbook for `StorageCheckFailed`. The counter for failed checks is bigger then 0.
+
+* Check Pod/PVC for `Pending` state
+* Describe resource to find out the reason
+* Find outz which `StorageClass` is used
+* Repair CSI of the corresponding StorageClass
+* Restart storagecheck deployment to reset counter
 
 ## metrics
 

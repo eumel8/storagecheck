@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: storagecheck
+spec:
+  groups:
+    - name: components.alerts
+      rules:
+      - alert: StorageCheckFailed
+        annotations:
+          message: 'StorageCheck "{{ $labels.instance }}" failed. Please Check'
+          runbook_url: https://github.com/eumel8/storagecheck/blob/main/README.md#alert
+        expr: |
+          (storage_check_success_total == 0 AND storage_check_failure_total > 0)
+        for: 10m
+        labels:
+          severity: warning
