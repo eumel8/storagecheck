@@ -234,6 +234,11 @@ func doStorageCheck(clientset kubernetes.Interface, namespace string, image stri
 		return
 	}
 
+	// we must repeadly check the env var to possibly overwrite the auto-selected storageClass
+	if os.Getenv("STORAGE_CLASS") != "" {
+		storageClass = os.Getenv("STORAGE_CLASS")
+	}
+
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "storage-check-pvc-",
