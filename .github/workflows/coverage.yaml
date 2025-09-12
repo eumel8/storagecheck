@@ -1,4 +1,6 @@
 name: "Go Coverage"
+permissions:
+  contents: write
 on:
   pull_request:
   push:
