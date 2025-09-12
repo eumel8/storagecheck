@@ -1,4 +1,7 @@
 name: Helm
+permissions:
+  contents: read
+  packages: write
 
 on: 
   push: 
