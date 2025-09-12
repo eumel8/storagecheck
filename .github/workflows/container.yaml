@@ -1,4 +1,7 @@
 name: Container
+permissions:
+  contents: read
+  packages: write
 
 on:
   push:
