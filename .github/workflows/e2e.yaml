@@ -79,7 +79,7 @@ jobs:
           # wait not for all pods here
           #kubectl wait --for=condition=Ready pods --all -n end2end --timeout=120s
           # wait for the main app pod
-          kubectl wait --for=condition=Ready pods -lapp.kubernetes.io/instance=storagecheck all -n end2end --timeout=120s
+          kubectl wait --for=condition=Ready pods -lapp.kubernetes.io/instance=storagecheck -n end2end --timeout=120s
           # wait for the storage-check
           kubectl wait --for=Create pods -lapp=storage-check -n end2end --timeout=120s
           echo kubectl get pods -n end2end
