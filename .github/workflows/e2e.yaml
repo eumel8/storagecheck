@@ -74,9 +74,9 @@ jobs:
       # Wait until all pods are Ready
       # -------------------------------------------------------
       - name: Wait for pods to be ready
-        continue-on-error: true
+        continue-on-error: false
         run: |
-          kubectl wait --for=condition=Ready pods --all -n end2end --timeout=30s
+          kubectl wait --for=condition=Ready pods --all -n end2end --timeout=120s
           echo kubectl get pods -n end2end
           kubectl get pods -n end2end --show-labels
           echo kubectl get services -n end2end
