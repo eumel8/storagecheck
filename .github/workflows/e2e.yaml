@@ -89,8 +89,7 @@ jobs:
       - name: Run Post-Install HTTP Check
         run: |
           EXPECTED="storage_check_success_total 1"
-          OUTPUT=$(kubectl get --raw /api/v1/namespaces/end2end/services/storagecheck:8080/proxy/metrics | grep "storage_check_s
-uccess_total 1")
+          OUTPUT=$(kubectl get --raw /api/v1/namespaces/end2end/services/storagecheck:8080/proxy/metrics | grep "storage_check_success_total 1")
           echo "Output: $OUTPUT"
 
           if [[ "$OUTPUT" != *"$EXPECTED"* ]]; then
