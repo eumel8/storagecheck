@@ -1,4 +1,6 @@
 name: End to End test
+permissions:
+  contents: read
 
 on:
   workflow_run:
