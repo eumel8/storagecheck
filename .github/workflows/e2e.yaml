@@ -6,9 +6,9 @@ on:
     types:
       - completed
 #  pull_request:
-  push:
-    branches:
-      - end2end
+#  push:
+#    branches:
+#      - end2end
 
 jobs:
   test-chart:
@@ -19,8 +19,8 @@ jobs:
       matrix:
         k8s:
           - v1.31.0
-#          - v1.32.0
-#         - v1.33.0
+          - v1.32.0
+          - v1.33.0
 
     steps:
       - name: Checkout repository
@@ -64,7 +64,8 @@ jobs:
         continue-on-error: true
         run: |
           cd chart
-          helm dependency update
+          # helm dependency update
+          # in Kind Cluster local-path provisioner is default, so we have a storage class and can directly start
           helm upgrade --install storagecheck . \
             --namespace end2end --create-namespace \
             --set image.tag=latest \
@@ -84,9 +85,7 @@ jobs:
           kubectl wait --for=Create pods -lapp=storage-check -n end2end --timeout=120s
           # wait for delete the storage-check
           kubectl wait --for=Delete pods -lapp=storage-check -n end2end --timeout=120s
-          echo kubectl get pods -n end2end
           kubectl get pods -n end2end --show-labels
-          echo kubectl get services -n end2end
           kubectl get services -n end2end
 
       # -------------------------------------------------------
