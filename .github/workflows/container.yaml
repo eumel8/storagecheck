@@ -5,8 +5,10 @@ permissions:
 
 on:
   push:
-#    tags:
-#    - "*"
+    branches:
+      - main
+    tags:        
+      - '*'
     
 jobs:
   build:
@@ -21,5 +23,7 @@ jobs:
           export DOCKER_BUILDKIT=1
           docker build -f Dockerfile -t ghcr.io/${{ github.repository_owner }}/${IMAGE}/${IMAGE}:${VERSION} .
           docker push ghcr.io/${{ github.repository_owner }}/${IMAGE}/${IMAGE}:${VERSION}
+          docker tag ghcr.io/${{ github.repository_owner }}/${IMAGE}/${IMAGE}:${VERSION} ghcr.io/${{ github.repository_owner }}/${IMAGE}/${IMAGE}:latest
+          docker push ghcr.io/${{ github.repository_owner }}/${IMAGE}/${IMAGE}:latest
         env:
           IMAGE: storagecheck
