@@ -1,0 +1,112 @@
+name: End to End test
+
+on:
+  workflow_run:
+    workflows: ["Container"]
+    types:
+      - completed
+#  pull_request:
+  push:
+    branches:
+      - end2end
+
+jobs:
+  test-chart:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        k8s:
+          - v1.31.0
+#          - v1.32.0
+#         - v1.33.0
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # -------------------------------------------------------
+      # Install Helm
+      # -------------------------------------------------------
+      - name: Install Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          helm version
+
+      # -------------------------------------------------------
+      # Install kind manually
+      # -------------------------------------------------------
+      - name: Install kind
+        run: |
+          KIND_VERSION="v0.30.0"
+          curl -Lo kind https://kind.sigs.k8s.io/dl/$KIND_VERSION/kind-linux-amd64
+          chmod +x kind
+          sudo mv kind /usr/local/bin/kind
+
+      # -------------------------------------------------------
+      # Create cluster with specific Kubernetes version
+      # -------------------------------------------------------
+      - name: Create kind cluster
+        run: |
+          kind create cluster \
+            --name test \
+            --image "kindest/node:${{ matrix.k8s }}" \
+            --wait 60s
+
+          kubectl cluster-info
+          kubectl get nodes
+
+      # -------------------------------------------------------
+      # Install Helm chart
+      # -------------------------------------------------------
+      - name: Install Helm chart
+        continue-on-error: true
+        env:
+        run: |
+          cd chart
+          helm dependency update
+          helm upgrade --install storagecheck . \
+            --namespace end2end --create-namespace \
+            --set image.tag=latest \
+            --wait --timeout 1m
+
+      # -------------------------------------------------------
+      # Wait until all pods are Ready
+      # -------------------------------------------------------
+      - name: Wait for pods to be ready
+        continue-on-error: true
+        run: |
+          kubectl wait --for=condition=Ready pods --all -n end2end --timeout=30s
+          echo kubectl get pods -n end2end
+          kubectl get pods -n end2end --show-labels
+          echo kubectl get services -n end2end
+          kubectl get services -n end2end
+
+      # -------------------------------------------------------
+      # Port-forward and Post-Install Curl Test
+      # -------------------------------------------------------
+      - name: Run Post-Install HTTP Check
+        run: |
+          EXPECTED="storage_check_success_total 1"
+          OUTPUT=$(kubectl get --raw /api/v1/namespaces/end2end/services/storagecheck:8080/proxy/metrics | grep "storage_check_s
+uccess_total 1")
+          echo "Output: $OUTPUT"
+
+          if [[ "$OUTPUT" != *"$EXPECTED"* ]]; then
+            echo "❌ Expected output not found!"
+            exit 1
+          fi
+
+          echo "✔ Output validated successfully"
+
+      # -------------------------------------------------------
+      # Debug info on failure
+      # -------------------------------------------------------
+      - name: Dump logs on failure
+        if: failure()
+        run: |
+          kubectl get all -A
+          kubectl describe pods -A
+          kubectl logs -l app.kubernetes.io/name=storagecheck -n end2end --tail=200 || true
+
