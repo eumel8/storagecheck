@@ -62,7 +62,6 @@ jobs:
       # -------------------------------------------------------
       - name: Install Helm chart
         continue-on-error: true
-        env:
         run: |
           cd chart
           helm dependency update
