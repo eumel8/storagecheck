@@ -91,7 +91,7 @@ func main() {
 	log.GetFormatter().(*log.TextFormatter).SetTemplate(logTemplate)
 
 	if image == "" {
-		image = "mtr.devops.telekom.de/mcsps/busybox:main"
+		image = "ghcr.io/mcsps/busybox:main"
 	}
 	if storageClass == "" {
 		storageClass = "local-path"
