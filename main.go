@@ -91,7 +91,7 @@ func main() {
 	log.GetFormatter().(*log.TextFormatter).SetTemplate(logTemplate)
 
 	if image == "" {
-		image = "mtr.devops.telekom.de/mcsps/busybox:main"
+		image = "ghcr.io/mcsps/busybox:main"
 	}
 	if storageClass == "" {
 		storageClass = "local-path"
@@ -300,7 +300,7 @@ func doStorageCheck(clientset kubernetes.Interface, namespace string, image stri
 						},
 						Requests: corev1.ResourceList{
 							corev1.ResourceCPU:    resource.MustParse("10m"),
-							corev1.ResourceMemory: resource.MustParse("48Mi"),
+							corev1.ResourceMemory: resource.MustParse("12Mi"),
 						},
 					},
 					SecurityContext: &corev1.SecurityContext{
