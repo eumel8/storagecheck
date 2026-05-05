@@ -84,7 +84,7 @@ jobs:
 
       - name: Open PR if matrix changed
         if: steps.update.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: chore/update-kind-matrix
