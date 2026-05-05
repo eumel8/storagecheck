@@ -20,11 +20,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Keep in sync with the node images shipped by the latest kind release.
+        # Run .github/workflows/update-kind-matrix.yaml to auto-update this list.
+        # Remove a version when kindest/node image is not yet available for it.
         k8s:
           - v1.33.0
           - v1.34.0
           - v1.35.0
-          - v1.36.0
 
     steps:
       - name: Checkout repository
@@ -34,32 +36,17 @@ jobs:
       # Install Helm
       # -------------------------------------------------------
       - name: Install Helm
-        run: |
-          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-          helm version
+        uses: azure/setup-helm@v4
 
       # -------------------------------------------------------
-      # Install kind manually
-      # -------------------------------------------------------
-      - name: Install kind
-        run: |
-          KIND_VERSION="v0.31.0"
-          curl -Lo kind https://kind.sigs.k8s.io/dl/$KIND_VERSION/kind-linux-amd64
-          chmod +x kind
-          sudo mv kind /usr/local/bin/kind
-
-      # -------------------------------------------------------
-      # Create cluster with specific Kubernetes version
+      # Create kind cluster (kind version auto-resolved to latest)
       # -------------------------------------------------------
       - name: Create kind cluster
-        run: |
-          kind create cluster \
-            --name test \
-            --image "kindest/node:${{ matrix.k8s }}" \
-            --wait 60s
-
-          kubectl cluster-info
-          kubectl get nodes
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: test
+          node_image: kindest/node:${{ matrix.k8s }}
+          wait: 60s
 
       # -------------------------------------------------------
       # Install Helm chart

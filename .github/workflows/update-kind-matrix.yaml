@@ -1,0 +1,105 @@
+name: Update kind K8s matrix
+
+# Runs weekly and whenever dispatched manually.
+# Queries the kind GitHub releases API to find all kindest/node images
+# available in the latest kind release, then updates the k8s matrix in
+# e2e.yaml and opens a PR if anything changed.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"  # every Monday 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Fetch latest kind release and extract node image versions
+        id: kind
+        run: |
+          # Get the latest kind release JSON
+          RELEASE=$(curl -fsSL https://api.github.com/repos/kubernetes-sigs/kind/releases/latest)
+
+          KIND_VERSION=$(echo "$RELEASE" | jq -r '.tag_name')
+          echo "kind_version=$KIND_VERSION" >> "$GITHUB_OUTPUT"
+
+          # Extract all kindest/node versions from the release body.
+          # kind releases list supported images as: kindest/node:vX.Y.Z@sha256:...
+          VERSIONS=$(echo "$RELEASE" | jq -r '.body' \
+            | grep -oP 'kindest/node:v\K[0-9]+\.[0-9]+\.[0-9]+' \
+            | sort -V \
+            | sed 's/^/v/')
+
+          echo "Supported K8s versions:"
+          echo "$VERSIONS"
+
+          # Build a YAML list for the matrix (two-space indent, dash-space prefix)
+          MATRIX_YAML=$(echo "$VERSIONS" | awk '{print "          - " $0}')
+          echo "matrix_yaml<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$MATRIX_YAML" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Update e2e.yaml matrix
+        id: update
+        run: |
+          FILE=".github/workflows/e2e.yaml"
+
+          # Replace everything between the "k8s:" line and the next non-list line
+          # (i.e. the blank line before "steps:") with the new matrix entries.
+          python3 - "$FILE" <<'PYEOF'
+          import re, sys
+
+          path = sys.argv[1]
+          new_entries = """${{ steps.kind.outputs.matrix_yaml }}"""
+
+          with open(path) as f:
+              content = f.read()
+
+          # Match the k8s: block and its indented list items
+          pattern = r'(        k8s:\n)((?:          - v\S+\n)+)'
+          replacement = r'\g<1>' + new_entries + '\n'
+          updated = re.sub(pattern, replacement, content)
+
+          if updated == content:
+              print("No changes needed.")
+              sys.exit(0)
+
+          with open(path, 'w') as f:
+              f.write(updated)
+          print("Updated matrix in", path)
+          PYEOF
+
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open PR if matrix changed
+        if: steps.update.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: chore/update-kind-matrix
+          commit-message: "chore: update kind K8s matrix to ${{ steps.kind.outputs.kind_version }}"
+          title: "chore: update kind K8s matrix to ${{ steps.kind.outputs.kind_version }}"
+          body: |
+            Automated update of the e2e K8s version matrix.
+
+            Latest kind release: **${{ steps.kind.outputs.kind_version }}**
+
+            Updated supported node image versions:
+            ```
+            ${{ steps.kind.outputs.matrix_yaml }}
+            ```
+
+            This PR was opened automatically by the `update-kind-matrix` workflow.
+          labels: dependencies
+          delete-branch: true
