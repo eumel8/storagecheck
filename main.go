@@ -20,9 +20,14 @@ import (
 )
 
 const (
-	port        = "8080"
-	logTemplate = "[{{datetime}}] [{{level}}] {{caller}} {{message}} \n"
-	timeout     = 10 * time.Second
+	port         = "8080"
+	logTemplate  = "[{{datetime}}] [{{level}}] {{caller}} {{message}} \n"
+	timeout      = 10 * time.Second
+	// checkTimeout is the maximum time doStorageCheck waits for the check pod
+	// to reach Succeeded or Failed. If the pod stays Pending beyond this
+	// deadline the function returns with a failure so the main loop is
+	// unblocked and the next interval can proceed.
+	checkTimeout = 10 * time.Minute
 )
 
 // Metrics
@@ -356,9 +361,21 @@ func doStorageCheck(clientset kubernetes.Interface, namespace string, image stri
 	}
 	defer clientset.CoreV1().Pods(namespace).Delete(ctx, createdPod.Name, metav1.DeleteOptions{})
 
-	// Wait for pod to complete
+	// Wait for pod to complete, bounded by checkTimeout to prevent an
+	// infinite deadlock when the pod stays in Pending (e.g. PVC never
+	// binds, node scheduling failure). Fixes #62.
+	waitCtx, cancel := context.WithTimeout(ctx, checkTimeout)
+	defer cancel()
+
 	for {
-		p, _ := clientset.CoreV1().Pods(namespace).Get(ctx, createdPod.Name, metav1.GetOptions{})
+		select {
+		case <-waitCtx.Done():
+			log.Errorf("Storage check timed out after %s waiting for pod %s to complete", checkTimeout, createdPod.Name)
+			checkFailure.Inc()
+			return
+		default:
+		}
+		p, _ := clientset.CoreV1().Pods(namespace).Get(waitCtx, createdPod.Name, metav1.GetOptions{})
 		if p.Status.Phase == corev1.PodSucceeded {
 			log.Debug("Storage check completed successfully")
 			checkSuccess.Inc()
