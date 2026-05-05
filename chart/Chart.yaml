@@ -3,7 +3,7 @@ name: storagecheck
 description: A Helm chart for check storage in Kubernetes Cluster
 type: application
 version: 2.2.1
-appVersion: "2.2.1"
+appVersion: "2.2.2"
 maintainers:
   - name: eumel8
     email: f.kloeker@telekom.de
