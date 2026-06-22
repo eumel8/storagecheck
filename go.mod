@@ -3,7 +3,7 @@ module github.com/eumel8/storagecheck
 go 1.26.0
 
 require (
-	github.com/gookit/slog v0.6.0
+	github.com/gookit/slog v0.7.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model v0.6.2
 	k8s.io/api v0.36.1
@@ -23,8 +23,8 @@ require (
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gookit/color v1.6.0 // indirect
-	github.com/gookit/goutil v0.7.1 // indirect
+	github.com/gookit/color v1.6.1 // indirect
+	github.com/gookit/goutil v0.7.6 // indirect
 	github.com/gookit/gsr v0.1.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
