@@ -20,4 +20,23 @@ spec:
         names:
         - storage-check-pod
         - storage-check-pod*
+{{- if .Capabilities.APIVersions.Has "policies.kyverno.io/v1/PolicyException" }}
+---
+apiVersion: policies.kyverno.io/v1
+kind: PolicyException
+metadata:
+  name: {{ include "storagecheck.fullname" . }}
+  labels:
+    {{- include "storagecheck.labels" . | nindent 4 }}
+spec:
+  policyRefs:
+  - name: prevent-bare-pods
+    kind: ValidatingPolicy
+  matchConditions:
+  - name: scope
+    expression: >-
+      object.kind == 'Pod' &&
+      object.metadata.?namespace.orValue('') == '{{ .Release.Namespace }}' &&
+      object.metadata.?name.orValue('').startsWith('storage-check-pod')
+{{ end }}
 {{ end }}
