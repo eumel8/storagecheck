@@ -452,7 +452,7 @@ func TestDoStorageCheck(t *testing.T) {
 
                         done := make(chan struct{})
                         go func() {
-                                doStorageCheck(clientset, tt.namespace, tt.image)
+                                doStorageCheck(clientset, tt.namespace, tt.image, []string{})
                                 close(done)
                         }()
 
