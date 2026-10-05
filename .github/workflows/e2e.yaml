@@ -4,14 +4,11 @@ permissions:
 
 on:
   workflow_dispatch:
+  pull_request:
   workflow_run:
     workflows: ["Container"]
     types:
       - completed
-#  pull_request:
-#  push:
-#    branches:
-#      - end2end
 
 jobs:
   test-chart:
@@ -33,6 +30,14 @@ jobs:
         uses: actions/checkout@v7
 
       # -------------------------------------------------------
+      # Build the image from the PR checkout, so the test runs
+      # the PR code instead of a previously pushed image.
+      # -------------------------------------------------------
+      - name: Build container image
+        if: github.event_name == 'pull_request'
+        run: docker build -t ghcr.io/eumel8/storagecheck/storagecheck:e2e .
+
+      # -------------------------------------------------------
       # Install Helm
       # -------------------------------------------------------
       - name: Install Helm
@@ -49,17 +54,30 @@ jobs:
           wait: 60s
 
       # -------------------------------------------------------
+      # Load the locally built image into the kind cluster
+      # -------------------------------------------------------
+      - name: Load image into kind
+        if: github.event_name == 'pull_request'
+        run: kind load docker-image ghcr.io/eumel8/storagecheck/storagecheck:e2e --name test
+
+      # -------------------------------------------------------
       # Install Helm chart
       # -------------------------------------------------------
       - name: Install Helm chart
         continue-on-error: true
         run: |
           cd chart
-          # helm dependency update
           # in Kind Cluster local-path provisioner is default, so we have a storage class and can directly start
+          # Pull requests use the locally built image, everything else
+          # uses the image pushed by the Container workflow.
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            IMAGE_ARGS="--set image.tag=e2e --set image.pullPolicy=Never"
+          else
+            IMAGE_ARGS="--set image.tag=latest"
+          fi
           helm upgrade --install storagecheck . \
             --namespace end2end --create-namespace \
-            --set image.tag=latest \
+            $IMAGE_ARGS \
             --wait --timeout 1m
 
       # -------------------------------------------------------
@@ -72,10 +90,9 @@ jobs:
           #kubectl wait --for=condition=Ready pods --all -n end2end --timeout=120s
           # wait for the main app pod
           kubectl wait --for=condition=Ready pods -lapp.kubernetes.io/instance=storagecheck -n end2end --timeout=120s
-          # wait for create the storage-check
-          kubectl wait --for=Create pods -lapp=storage-check -n end2end --timeout=120s
-          # wait for delete the storage-check
-          kubectl wait --for=Delete pods -lapp=storage-check -n end2end --timeout=120s
+          # The storage check pod (app=storage-check) is created and deleted
+          # by the app during its first check, so it may be gone already.
+          # The HTTP check below is the real gate.
           kubectl get pods -n end2end --show-labels
           kubectl get services -n end2end
 
@@ -85,15 +102,20 @@ jobs:
       - name: Run Post-Install HTTP Check
         run: |
           EXPECTED="storage_check_success_total 1"
-          OUTPUT=$(kubectl get --raw /api/v1/namespaces/end2end/services/storagecheck:8080/proxy/metrics | grep "storage_check_success_total 1")
-          echo "Output: $OUTPUT"
-
-          if [[ "$OUTPUT" != *"$EXPECTED"* ]]; then
-            echo "❌ Expected output not found!"
-            exit 1
-          fi
-
-          echo "✔ Output validated successfully"
+          # The first storage check starts right after the app boots, but
+          # PVC provisioning and the check pod image pull take a moment.
+          for i in $(seq 1 30); do
+            OUTPUT=$(kubectl get --raw /api/v1/namespaces/end2end/services/storagecheck:8080/proxy/metrics 2>/dev/null | grep "storage_check_success_total 1" || true)
+            if [[ "$OUTPUT" == *"$EXPECTED"* ]]; then
+              echo "✔ Output validated successfully"
+              exit 0
+            fi
+            echo "Waiting for the first storage check to complete ($i/30)..."
+            sleep 10
+          done
+          echo "❌ Expected output not found!"
+          kubectl get --raw /api/v1/namespaces/end2end/services/storagecheck:8080/proxy/metrics || true
+          exit 1
 
       # -------------------------------------------------------
       # Debug info on failure
@@ -104,4 +126,3 @@ jobs:
           kubectl get all -A
           kubectl describe pods -A
           kubectl logs -l app.kubernetes.io/name=storagecheck -n end2end --tail=200 || true
-
