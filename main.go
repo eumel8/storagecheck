@@ -200,6 +200,34 @@ func cleanupPreviousChecks(clientset kubernetes.Interface, namespace string) {
 			}
 		}
 	}
+
+	// Clean up orphaned VolumeAttachments — these are left behind when a PV
+	// is deleted but the CSI external-attacher didn't remove the VA in time.
+	// They block PV deletion with "persistentvolume is still attached to node".
+	vaList, err := clientset.StorageV1().VolumeAttachments().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		log.Error("Failed to list VolumeAttachments: %v", err)
+		return
+	}
+
+	for _, va := range vaList.Items {
+		pvName := va.Spec.Source.PersistentVolumeName
+		if pvName == nil {
+			continue
+		}
+
+		_, err := clientset.CoreV1().PersistentVolumes().Get(ctx, *pvName, metav1.GetOptions{})
+		if err != nil {
+			// PV is gone — VA is orphaned, safe to delete
+			log.Debug("Deleting orphaned VolumeAttachment %s (PV %s missing)", va.Name, *pvName)
+			if err := clientset.StorageV1().VolumeAttachments().Delete(ctx, va.Name, metav1.DeleteOptions{}); err != nil {
+				log.Error("Failed to delete VolumeAttachment %s: %v", va.Name, err)
+				cleanupFailure.Inc()
+			} else {
+				cleanupSuccess.Inc()
+			}
+		}
+	}
 }
 
 // lookup possible storage classes beside replaimPolicy Retain
