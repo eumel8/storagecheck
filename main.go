@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/gookit/slog"
@@ -75,6 +76,17 @@ func main() {
 	intervalStr := os.Getenv("CHECK_INTERVAL")
 	namespace := os.Getenv("NAMESPACE")
 	image := os.Getenv("CHECK_IMAGE")
+	imagePullSecretsEnv := os.Getenv("CHECK_IMAGE_PULL_SECRETS")
+	var imagePullSecrets []string
+	if imagePullSecretsEnv != "" {
+		for _, secretName := range strings.Split(imagePullSecretsEnv, ",") {
+			secretName = strings.TrimSpace(secretName)
+			if secretName == "" {
+				continue
+			}
+			imagePullSecrets = append(imagePullSecrets, secretName)
+		}
+	}
 
 	switch logLevel {
 	case "fatal":
@@ -133,7 +145,7 @@ func main() {
 	for {
 		// Clean up any existing resources from previous checks before proceeding
 		cleanupPreviousChecks(clientset, namespace)
-		doStorageCheck(clientset, namespace, image)
+		doStorageCheck(clientset, namespace, image, imagePullSecrets)
 		<-ticker.C
 	}
 }
@@ -242,7 +254,7 @@ func lookupStorageClass(clientset kubernetes.Interface) (string, error) {
 	return "", nil
 }
 
-func doStorageCheck(clientset kubernetes.Interface, namespace string, image string) {
+func doStorageCheck(clientset kubernetes.Interface, namespace string, image string, imagePullSecretNames []string) {
 
 	log.Infof("Perform a storage check")
 	var user = int64(1000)
@@ -252,6 +264,12 @@ func doStorageCheck(clientset kubernetes.Interface, namespace string, image stri
 
 	start := time.Now()
 	ctx := context.Background()
+	var imagePullSecrets []corev1.LocalObjectReference
+	if len(imagePullSecretNames) > 0 {
+		for _, secretName := range imagePullSecretNames {
+			imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: secretName})
+		}
+	}
 
 	// lookup a storage class until we find one that is not Retain
 	storageClass, err := lookupStorageClass(clientset)
@@ -307,6 +325,7 @@ func doStorageCheck(clientset kubernetes.Interface, namespace string, image stri
 		},
 		Spec: corev1.PodSpec{
 			RestartPolicy: corev1.RestartPolicyNever,
+			ImagePullSecrets: imagePullSecrets,
 			Containers: []corev1.Container{
 				{
 					Name:    "checker",
