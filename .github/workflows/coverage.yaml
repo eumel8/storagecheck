@@ -2,13 +2,16 @@ name: "Go Coverage"
 permissions:
   contents: write
 on:
-  pull_request:
   push:
     branches:
-      # It's important that the action also runs on merge to main
+      # Update the coverage badge only on main
       - main
+
 jobs:
   test:
+    # Skip dependency updates merged by dependabot into main
+    # (merge commit "Merge pull request #NN from <owner>/dependabot/...")
+    if: ${{ !contains(join(github.event.commits.*.message, ' '), '/dependabot/') && !contains(join(github.event.commits.*.author.name, ' '), 'dependabot') }}
     runs-on: ubuntu-latest
     name: Update coverage badge
     steps:
@@ -17,7 +20,7 @@ jobs:
         with:
           persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal access token.
           fetch-depth: 0 # otherwise, there would be errors pushing refs to the destination repository.
-      
+
       - name: Setup go
         uses: actions/setup-go@v7
         with:
@@ -26,7 +29,6 @@ jobs:
       - name: Run Test
         run: |
           go test -v ./... -covermode=count -coverprofile=coverage.out
-          go tool cover -func=coverage.out -o=coverage.out
 
       - name: Go Coverage Badge  # Pass the `coverage.out` output to this action
         uses: tj-actions/coverage-badge-go@v3
@@ -52,4 +54,4 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ github.token }}
-          branch: ${{ github.head_ref }}
+          branch: ${{ github.ref_name }}
