@@ -44,11 +44,14 @@ jobs:
         uses: azure/setup-helm@v5
 
       # -------------------------------------------------------
-      # Create kind cluster (kind version auto-resolved to latest)
+      # Create kind cluster (pin kind >= v0.32: newer kindest/node
+      # images ship containerd config v4, which older kind CLIs
+      # cannot parse for `kind load`)
       # -------------------------------------------------------
       - name: Create kind cluster
         uses: helm/kind-action@v1
         with:
+          version: v0.33.0
           cluster_name: test
           node_image: kindest/node:${{ matrix.k8s }}
           wait: 60s
