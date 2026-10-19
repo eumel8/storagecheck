@@ -11,9 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
-  workflows: write
+  contents: read
 
 jobs:
   update-matrix:
@@ -87,7 +85,10 @@ jobs:
         if: steps.update.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN cannot be granted write access to workflow files
+          # (the matrix update modifies e2e.yaml), so use a fine-grained
+          # PAT secret with Contents, Pull requests and Workflows: write.
+          token: ${{ secrets.PULL_REQUEST_PAT }}
           branch: chore/update-kind-matrix
           commit-message: "chore: update kind K8s matrix to ${{ steps.kind.outputs.kind_version }}"
           title: "chore: update kind K8s matrix to ${{ steps.kind.outputs.kind_version }}"
