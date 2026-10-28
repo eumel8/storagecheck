@@ -1,6 +1,6 @@
 module github.com/eumel8/storagecheck
 
-go 1.26.0
+go 1.27.3
 
 require (
 	github.com/gookit/slog v0.7.1
