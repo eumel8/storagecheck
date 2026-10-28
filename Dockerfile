@@ -1,5 +1,5 @@
 # build stage
-FROM golang:1.26 AS build-env
+FROM golang:1.27.3 AS build-env
 RUN mkdir -p /go/src/github.com/eumel8/storagecheck
 WORKDIR /go/src/github.com/eumel8/storagecheck
 COPY  . .
