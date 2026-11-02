@@ -56,6 +56,20 @@ storage_check_failure_total 0
 storage_check_success_total 1
 ```
 
+## Dependency updates
+
+Renovate uses the [shared update policy](https://github.com/eumel8/renovate-config).
+Regular updates are proposed on Monday mornings (Europe/Berlin), with at most
+three open regular update PRs. Go module updates are grouped separately from Go
+toolchain updates; Dockerfile, `go.mod` and release workflow Go versions share
+the toolchain group. Major upgrades require approval in the Dependency Dashboard.
+Auto-merge is disabled.
+
+The Renovate GitHub App must have access to this repository. Merge the shared
+preset first, then this repository's onboarding PR. Dependabot version updates
+are replaced by Renovate; GitHub vulnerability alerts and Dependabot security
+updates are separate settings.
+
 ## Credits
 
 Frank Kloeker f.kloeker@telekom.de
